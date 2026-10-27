@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS-GAIT // Biometric Telemetry & Kinematics Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/hud.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="hud-container">
+    <!-- Top HUD Navigation Header -->
+    <header class="hud-header glass-card">
+      <div class="brand">
+        <span class="pulsar"></span>
+        <h2>AEGIS-GAIT // CLINICAL TELEMETRY</h2>
+      </div>
+      <div class="tab-controls">
+        <button class="tab-btn active" id="tab-live-btn" onclick="switchTab('live')">01 // LIVE TELEMETRY</button>
+        <button class="tab-btn" id="tab-dossier-btn" onclick="switchTab('dossier')">02 // KINEMATIC DOSSIER</button>
+      </div>
+    </header>
+
+    <!-- Tab 1: Live HUD Capture -->
+    <main id="tab-live" class="tab-content active">
+      <div class="control-strip glass-card">
+        <div class="input-group">
+          <label>SUBJECT IDENTIFIER</label>
+          <input type="text" id="patient-input" value="Subject_01" placeholder="Enter Subject / Patient ID">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-record" id="btn-record" onclick="toggleSession()">START RECORDING</button>
+          <span class="record-badge" id="rec-status">STANDBY</span>
+        </div>
+      </div>
+
+      <div class="workspace-grid">
+        <div class="stream-panel glass-card">
+          <div class="panel-tag">OPTICAL KINEMATICS STREAM</div>
+          <div class="video-wrapper">
+            <img src="{{ url_for('video_feed') }}" alt="Gait Optical Stream" class="video-stream">
+          </div>
+        </div>
+
+        <div class="telemetry-dock">
+          <div class="glass-card stat-card">
+            <div class="card-label">SYMMETRY INDEX (SI)</div>
+            <div class="card-value" id="si-val">0.0%</div>
+            <div class="status-indicator" id="si-status">NOMINAL</div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="card-label">CADENCE</div>
+            <div class="card-value" id="cadence-val">0.0 <span class="unit">SPM</span></div>
+            <div class="card-sub">TOTAL STEPS: <span id="steps-val">0</span></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="card-label">PEAK RANGE OF MOTION</div>
+            <div class="rom-row">
+              <div>L: <span id="l-rom" class="accent-val">0.0°</span></div>
+              <div>R: <span id="r-rom" class="accent-val">0.0°</span></div>
+            </div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="card-label">PHASE MONITOR</div>
+            <div class="phase-indicator">
+              <span id="l-phase" class="badge">L: STANCE</span>
+              <span id="r-phase" class="badge">R: STANCE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-panel glass-card">
+        <div class="panel-tag">LIVE JOINT TRAJECTORY WAVEFORM</div>
+        <div class="chart-container">
+          <canvas id="liveChart"></canvas>
+        </div>
+      </div>
+    </main>
+
+    <!-- Tab 2: Kinematic Dossier & Historical Analysis -->
+    <main id="tab-dossier" class="tab-content" style="display:none;">
+      <div class="dossier-control-strip glass-card">
+        <div>
+          <h3 id="dossier-patient-tag" style="color:#00e5ff; letter-spacing:1px;">SUBJECT DOSSIER: SUBJECT_01</h3>
+          <p id="dossier-meta-tag" style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">STATUS: NO RECORD LOADED</p>
+        </div>
+        <div class="btn-group">
+          <select id="session-select" class="session-dropdown" onchange="loadSelectedSession(this.value)">
+            <option value="">-- SELECT PREVIOUS LOG --</option>
+          </select>
+          <button class="btn" onclick="populateSessionDropdown()">REFRESH LOGS</button>
+        </div>
+      </div>
+
+      <div class="dossier-charts-stack">
+        <!-- Panel 1: Knee Flexion Waveforms & ROM -->
+        <div class="glass-card dossier-card">
+          <div class="panel-tag">PANEL 01 // SAGITTAL KNEE FLEXION KINEMATICS & PEAK ROM LIMITS</div>
+          <div class="dossier-chart-container">
+            <canvas id="dossierFlexionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Panel 2: Robinson's Symmetry Index -->
+        <div class="glass-card dossier-card">
+          <div class="panel-tag">PANEL 02 // DYNAMIC SYMMETRY INDEX (SI %) & CLINICAL THRESHOLDS</div>
+          <div class="dossier-chart-container">
+            <canvas id="dossierSiChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Panel 3: Locomotion Cadence Profile -->
+        <div class="glass-card dossier-card">
+          <div class="panel-tag">PANEL 03 // TEMPORAL CADENCE PROFILE (SPM)</div>
+          <div class="dossier-chart-container">
+            <canvas id="dossierCadenceChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clinical Diagnostic Summary Metrics -->
+      <div class="glass-card clinical-summary-card">
+        <div class="panel-tag">CLINICAL ASSESSMENT SUMMARY</div>
+        <div class="summary-metrics-grid">
+          <div><span class="sum-label">TOTAL DURATION:</span> <span id="sum-dur" class="sum-val">0.0s</span></div>
+          <div><span class="sum-label">TOTAL STRIDES:</span> <span id="sum-steps" class="sum-val">0</span></div>
+          <div><span class="sum-label">MEAN CADENCE:</span> <span id="sum-cad" class="sum-val">0.0 SPM</span></div>
+          <div><span class="sum-label">MEAN SYMMETRY INDEX:</span> <span id="sum-si" class="sum-val">0.0%</span></div>
+          <div><span class="sum-label">L-PEAK ROM:</span> <span id="sum-lrom" class="sum-val">0.0°</span></div>
+          <div><span class="sum-label">R-PEAK ROM:</span> <span id="sum-rrom" class="sum-val">0.0°</span></div>
+        </div>
+      </div>
+
+      <!-- Automated Biomechanical Diagnostic Findings -->
+      <div class="glass-card diagnosis-card">
+        <div class="panel-tag">AUTOMATED BIOMECHANICAL PATHOLOGY REPORT</div>
+        <div class="diagnosis-status-badge" id="diag-badge">EVALUATING SESSION...</div>
+        
+        <div class="findings-container">
+          <h4 style="color:#fff; margin-bottom: 6px; font-size: 0.85rem;">CLINICAL FINDINGS & OBSERVATIONS:</h4>
+          <ul id="findings-list" class="findings-list">
+            <li>Awaiting telemetry records...</li>
+          </ul>
+
+          <div class="clinical-impression-box">
+            <span class="imp-label">DIAGNOSTIC IMPRESSION / SUSPECTED CONDITION:</span>
+            <p id="diag-impression" class="imp-text">No active log parsed.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/telemetry.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dossier.js') }}"></script>
+  <script>
+    function switchTab(tab) {
+      document.getElementById('tab-live').style.display = tab === 'live' ? 'block' : 'none';
+      document.getElementById('tab-dossier').style.display = tab === 'dossier' ? 'block' : 'none';
+      document.getElementById('tab-live-btn').classList.toggle('active', tab === 'live');
+      document.getElementById('tab-dossier-btn').classList.toggle('active', tab === 'dossier');
+      if (tab === 'dossier') {
+        loadLatestSession();
+      }
+    }
+  </script>
+</body>
+</html>
