@@ -22,3 +22,4 @@ build/
 *.pt
 *.onnx
 *.weights
+*.csv
