@@ -33,3 +33,16 @@
 ---
 
 ## System Architecture
+ ![alt text](image.png)
+
+ ## Directory Structure
+ AEGIS-GAIT/
+|-- server.py              # Flask server, MediaPipe pose pipe, telemetry engine
+|-- requirements.txt       # Python dependencies
+|-- README.md              # Documentation
+|-- templates/
+|   -- index.html         # Cybernetic glassmorphic HUD & Dossier interface -- static/
+|-- css/
+|   -- hud.css        # Futuristic UI styling and layout rules -- js/
+|-- telemetry.js   # Live metric fetcher and real-time waveform chart
+`-- dossier.js     # Post-session charts and clinical diagnostic engine
